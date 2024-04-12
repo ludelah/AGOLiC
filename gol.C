@@ -1,48 +1,84 @@
 #include "raylib.h"
 #include <stdio.h>
-#define SIZE 40
-#define SCREEN_HEIGHT 1000
-#define SCREEN_WIDTH 1000
+#include <cstdint>
+#define GRID_HEIGHT 120
+#define GRID_WIDTH 120
+#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 720
 
+void clearGrid(long grid[GRID_HEIGHT][GRID_WIDTH])
+{
+    for (int i = 0; i < GRID_HEIGHT; i++)
+        for (int j = 0; j < GRID_WIDTH; j++)
+            grid[i][j] = 0;
+}
 
-void printGrid(int grid[SIZE][SIZE], int isDarkMode) {
-    Color alive = isDarkMode ? WHITE : BLACK;
-    Color dead = isDarkMode ? BLACK : WHITE;
+void printGrid(long grid[GRID_HEIGHT][GRID_WIDTH], int isDarkMode) {
+    Color color = isDarkMode ? RAYWHITE : BLACK;
+    Color backgroundColor = isDarkMode ? BLACK : RAYWHITE;
     
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            if (grid[i][j] == 0)
-                DrawRectangle(j * (SCREEN_WIDTH / SIZE), i * (SCREEN_HEIGHT / SIZE), SIZE, SIZE, dead);
-            else if(grid[i][j] == 1)
-            {   
-                Color color = { GetRandomValue(20, 255), GetRandomValue(0, 90), GetRandomValue(150, 255), 255 };
-                DrawRectangleGradientV(j * (SCREEN_WIDTH / SIZE), i * (SCREEN_HEIGHT / SIZE), SIZE, SIZE, alive, color);
+    int scalarX = SCREEN_WIDTH / GRID_WIDTH;
+    int scalarY = SCREEN_HEIGHT / GRID_HEIGHT;
+    int commonScalar = scalarX + scalarY;
+    
+    ClearBackground(backgroundColor);
+    for (int i = 0; i < GRID_HEIGHT; i++) {
+        for (int j = 0; j < GRID_WIDTH; j++) 
+        {
+            
+            if (grid[i][j] == 0)      // if the cell is not alive, don't draw it
+            {
+                continue;
             }
+            
+            DrawRectangle(//j * commonScalar, // X 
+                          j * scalarX,  
+                          
+                          //i * commonScalar, // Y
+                          i * scalarY,
+                          
+                          //commonScalar,     // width
+                          scalarX,        // uncomment this line and comment the previous one for an atari look
+                          
+                          //commonScalar,     // height
+                          scalarY,      
+                          
+                          color         // color, default: black (if darkmode: raywhite)
+                          );       
         }
     }
     
 
 }
 
-void updateGrid(int grid[SIZE][SIZE]) {
-    int tempGrid[SIZE][SIZE];
+void updateGrid(long grid[GRID_HEIGHT][GRID_WIDTH]) {
+    int tempGrid[GRID_HEIGHT][GRID_WIDTH];
 
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
+    // foreach row in the grid
+    for (int i = 0; i < GRID_HEIGHT; i++) {
+        
+        //foreach cell in the row
+        for (int j = 0; j < GRID_WIDTH; j++) {
+            
             int aliveNeighbors = 0;
 
             for (int y = i-1; y <= i+1; y++)
-            {
-                if (y < 0 || y > SIZE){continue;}
+            {   
+                // if the neighbor is outside the border, keep looping
+                if (y < 0 || y > GRID_HEIGHT){continue;}
                 
                 for (int x = j-1; x <= j+1; x++)
                 {
-                    if (x < 0 || x > SIZE){continue;}
+                    // if the neighbor is outside the border, keep looping
+                    if (x < 0 || x > GRID_WIDTH){continue;}
                     aliveNeighbors += grid[y][x];
                 }
             }
+            
+            // taking its own state from the neighbors
             aliveNeighbors -= grid[i][j];
-
+            
+            // game of life rules
             if (aliveNeighbors < 2 || aliveNeighbors > 3)
                 tempGrid[i][j] = 0;
             else if (aliveNeighbors == 3)
@@ -52,64 +88,110 @@ void updateGrid(int grid[SIZE][SIZE]) {
         }
     }
 
-    for (int i = 0; i < SIZE; i++)
-        for (int j = 0; j < SIZE; j++)
+    // update grid
+    for (int i = 0; i < GRID_HEIGHT; i++)
+        for (int j = 0; j < GRID_WIDTH; j++)
             grid[i][j] = tempGrid[i][j];
 }
 
-void generateGrid(int grid[SIZE][SIZE], unsigned int seed, float rate)
+void generateGrid(long grid[GRID_HEIGHT][GRID_WIDTH], unsigned int seed, float rate)
 {
     SetRandomSeed(seed);
-    for (int i = 0; i < SIZE; i++)
+    for (int i = 0; i < GRID_HEIGHT; i++)
     {
-        for (int j = 0; j < SIZE; j++)
+        for (int j = 0; j < GRID_WIDTH; j++)
         {
             grid[i][j] = GetRandomValue(0, 1);
         }
     }
 }
 
-int main(void)
+void generatePulsar(long grid[GRID_HEIGHT][GRID_WIDTH], int x, int y)
 {
-    unsigned int seed = 69;
-    int grid[SIZE][SIZE] = {0};
-    float rate = 0.5f;
-    int time = 0;
     
-    int isDarkMode = 0;
+    char pulsar[14][14] = {"..OOO...OOO..", ".............", "O....O.O....O", "O....O.O....O", "O....O.O....O", "..OOO...OOO..", ".............", "..OOO...OOO..", "O....O.O....O", "O....O.O....O", "O....O.O....O", ".............", "..OOO...OOO.."};
     
-    int scalar = SCREEN_WIDTH / SIZE;
-    // Glider
-    /*grid[1][0] = 1;
+    
+    for (int i = 0; i < 13; i++ )
+        for (int j = 0; j < 13; j++)
+        {
+            if (pulsar[i][j] == 'O')
+                grid[i+y][j+x] = 1;
+        }
+}
+
+void generateGlider(long grid[GRID_HEIGHT][GRID_WIDTH])
+{   
+    grid[1][0] = 1;
     grid[2][1] = 1;
     grid[0][2] = 1;
     grid[1][2] = 1;
     grid[2][2] = 1;
-       */
+}
+
+int main(void)
+{
+    unsigned int seed = 69;
+    long grid[GRID_HEIGHT][GRID_WIDTH] = {0};
+    float rate = 0.5f;
+    int FPS = 10; 
+    int isDarkMode = 0;
+    int shouldShowHelp = 0;
        
+    
+    //generateGlider(grid)
+    //generatePulsar(grid, 20, 20);   
     generateGrid(grid, seed, rate);
+    
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Conway's Game of Life");
     
-    SetTargetFPS(15);
-    
+    SetTargetFPS(FPS);
     
     
     while(!WindowShouldClose())
     {
+        if (IsKeyPressed(KEY_UP) && (FPS <= 30))
+        {
+            FPS++;
+            SetTargetFPS(FPS);
+        } 
+        if (IsKeyPressed(KEY_DOWN) && (FPS >= 5))
+        {
+            FPS--;
+            SetTargetFPS(FPS);
+        }
+        
         if (IsKeyPressed(KEY_SPACE))
-            generateGrid(grid, GetRandomValue(0, 255), rate);
+            generateGrid(grid, GetRandomValue(0, 100000), rate);
         if (IsKeyPressed(KEY_TAB))
             isDarkMode = isDarkMode ? 0 : 1; 
 
+        if (IsKeyPressed(KEY_ONE))
+            generateGlider(grid);
+        if (IsKeyPressed(KEY_TWO))
+            generatePulsar(grid, 2, 2);
+        if (IsKeyPressed(KEY_BACKSPACE))
+            clearGrid(grid);
+        if (IsKeyPressed(KEY_F1))
+            shouldShowHelp = shouldShowHelp ? 0 : 1;
+        
         BeginDrawing();
             printGrid(grid, isDarkMode);
-            //draw grid lines
-            for (int i = scalar; i < SCREEN_WIDTH; i += scalar)
+            DrawText("F1: Show help", 10, SCREEN_HEIGHT - 20, 20, isDarkMode ? WHITE : BLACK);
+            
+            if (shouldShowHelp)
             {
-                DrawLine(i, 0, i, SCREEN_HEIGHT, RAYWHITE);
-                DrawLine(0, i, SCREEN_WIDTH, i, RAYWHITE);
+                DrawText("2 to spawn a pulsar", 10, SCREEN_HEIGHT - 40, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("1 to spawn a glider", 10, SCREEN_HEIGHT - 60, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("TAB: dark mode", 10, SCREEN_HEIGHT - 80, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("SPACE: restart", 10, SCREEN_HEIGHT - 100, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("UP or DOWN: change speed", 10, SCREEN_HEIGHT - 120, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("BACKSPACE: clear grid ", 10, SCREEN_HEIGHT - 140, 20, isDarkMode ? WHITE : BLACK);
+                DrawText("ESC: close game", 10, SCREEN_HEIGHT - 160, 20, isDarkMode ? WHITE : BLACK);
             }
+            
         EndDrawing();
+        
         updateGrid(grid);
     }
     return 0;
